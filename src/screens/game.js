@@ -667,8 +667,8 @@ export function initGame(socket, state, showScreen, showToast) {
         }
 
         gameLogEl.innerHTML = "";
-        dieFaceEl.innerHTML = "";
         dieFaceEl.classList.remove("rolling");
+        renderDie(1);
         document.getElementById("letter-reveal-ui")?.remove();
         actionPrompt.textContent = "";
         actionPrompt.classList.remove("active");
