@@ -230,6 +230,54 @@ export function initGame(socket, state, showScreen, showToast) {
         gameLogEl.prepend(entry);
     }
 
+    function replayLog(events) {
+        for (const ev of events) {
+            if (ev.t === "start") {
+                log(`Game started! ${ev.names[ev.firstTurn]} goes first.`, true);
+            } else if (ev.t === "roll") {
+                const byMe = ev.by === state.myIndex;
+                log(`${byMe ? "You" : getOpponentName()} rolled a ${ev.roll}.`);
+            } else if (ev.t === "reveal") {
+                const byMe = ev.by === state.myIndex;
+                if (byMe) {
+                    if (ev.letter) {
+                        if (ev.cells.length === 0) {
+                            log(`You revealed "${ev.letter}" - none on the board.`);
+                        } else {
+                            log(`You revealed all ${ev.cells.length} "${ev.letter}"${ev.cells.length > 1 ? "s" : ""}: ${ev.cells.map(c => `${c.col}${c.row}`).join(", ")}`, true);
+                        }
+                    } else {
+                        const hits = ev.cells.filter(c => c.letter !== null);
+                        const misses = ev.cells.filter(c => c.letter === null);
+                        if (hits.length > 0) log(`You revealed: ${hits.map(c => `${c.col}${c.row}=${c.letter}`).join(", ")}`, true);
+                        if (misses.length > 0) log(`${misses.length} empty cell${misses.length > 1 ? "s" : ""}.`);
+                    }
+                } else {
+                    if (ev.letter) {
+                        if (ev.cells.length === 0) {
+                            log(`${getOpponentName()} revealed "${ev.letter}" - none on your board.`);
+                        } else {
+                            log(`${getOpponentName()} revealed all "${ev.letter}"s (${ev.cells.length} cell${ev.cells.length > 1 ? "s" : ""}).`);
+                        }
+                    } else {
+                        const hits = ev.cells.filter(c => c.letter !== null);
+                        const misses = ev.cells.filter(c => c.letter === null);
+                        if (hits.length > 0) log(`${getOpponentName()} found: ${hits.map(c => `${c.col}${c.row}=${c.letter}`).join(", ")}`);
+                        if (misses.length > 0) log(`${getOpponentName()} missed ${misses.length} cell${misses.length > 1 ? "s" : ""}.`);
+                    }
+                }
+            } else if (ev.t === "guess") {
+                const byMe = ev.by === state.myIndex;
+                const wordList = ev.words.map(w => w.toUpperCase()).join(", ");
+                if (byMe) {
+                    log(`You guessed wrong (${wordList}) - turn forfeited.`);
+                } else {
+                    log(`${getOpponentName()} guessed: ${wordList} - wrong!`);
+                }
+            }
+        }
+    }
+
     // === Roll ===
 
     btnRoll.addEventListener("click", () => {
@@ -510,9 +558,10 @@ export function initGame(socket, state, showScreen, showToast) {
         log(`${getOpponentName()} reconnected. Game continuing.`, true);
     });
 
-    socket.on("game-resumed", ({ players, myBoard, currentTurn, currentRoll: resumedRoll }) => {
+    socket.on("game-resumed", ({ players, myBoard, currentTurn, currentRoll: resumedRoll, revealedCells, opponentRevealedCells, myRevealedLetters, gameLog }) => {
         playerNames = players;
 
+        // Restore my board letters
         for (let ri = 0; ri < 10; ri++) {
             for (let ci = 0; ci < 10; ci++) {
                 const letter = myBoard[ri][ci];
@@ -524,6 +573,28 @@ export function initGame(socket, state, showScreen, showToast) {
                     }
                 }
             }
+        }
+
+        // Restore opponent hit/miss markers on my board
+        for (const { col, row, letter } of (opponentRevealedCells || [])) {
+            const cell = getCell(myGridEl, col, row);
+            if (!cell) continue;
+            if (letter !== null) {
+                cell.classList.add("opponent-hit");
+            } else {
+                cell.textContent = "✕";
+                cell.classList.add("opponent-miss");
+            }
+        }
+
+        // Restore my tracking grid (what I've revealed on the opponent's board)
+        for (const { col, row, letter } of (revealedCells || [])) {
+            setCell(opponentGridEl, col, row, letter);
+        }
+
+        // Restore revealed letter chips
+        for (const letter of (myRevealedLetters || [])) {
+            addRevealedLetterChip(letter);
         }
 
         setMyTurn(currentTurn === state.myIndex);
@@ -543,6 +614,7 @@ export function initGame(socket, state, showScreen, showToast) {
             }
         }
 
+        replayLog(gameLog || []);
         showToast("Reconnected to game!");
         log("Reconnected to game.", true);
     });

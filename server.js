@@ -68,6 +68,7 @@ function makePlayer(id, name) {
         placements: [], // [{word, col, row, direction}, ...]
         ready: false,
         revealedCells: new Set(), // "col,row" keys of opponent cells this player has seen
+        revealedLetters: new Set(), // letters revealed via roll-6
     };
 }
 
@@ -80,7 +81,8 @@ function makeRoom(code) {
         currentRoll: null,
         winner: null,
         reconnectTimer: null,
-        playAgainVotes: new Set()
+        playAgainVotes: new Set(),
+        log: [],
     };
 }
 
@@ -273,11 +275,33 @@ io.on("connection", (socket) => {
                 if (room.phase === "setup") {
                     socket.emit("board-updated", { board: player.board, words: player.words });
                 } else if (room.phase === "game") {
+                    const opponent = room.players[otherIdx(dcIdx)];
+
+                    // Cells the reconnecting player has revealed on the opponent's board
+                    const revealedCells = [];
+                    for (const key of player.revealedCells) {
+                        const [col, rowStr] = key.split(",");
+                        const rowNum = parseInt(rowStr);
+                        revealedCells.push({ col, row: rowNum, letter: opponent.board[rowNum - 1][colIndex(col)] });
+                    }
+
+                    // Cells the opponent has revealed on the reconnecting player's board
+                    const opponentRevealedCells = [];
+                    for (const key of opponent.revealedCells) {
+                        const [col, rowStr] = key.split(",");
+                        const rowNum = parseInt(rowStr);
+                        opponentRevealedCells.push({ col, row: rowNum, letter: player.board[rowNum - 1][colIndex(col)] });
+                    }
+
                     socket.emit("game-resumed", {
                         players: room.players.map(p => p.name),
                         myBoard: player.board,
                         currentTurn: room.currentTurn,
                         currentRoll: room.currentRoll,
+                        revealedCells,
+                        opponentRevealedCells,
+                        myRevealedLetters: [...player.revealedLetters],
+                        gameLog: room.log,
                     });
                 }
                 return;
@@ -338,9 +362,11 @@ io.on("connection", (socket) => {
         if (room.players.length === 2 && room.players.every(p => p.ready)) {
             room.phase = "game";
             room.currentTurn = Math.random() < 0.5 ? 0 : 1;
+            const names = room.players.map(p => p.name);
+            room.log.push({ t: "start", firstTurn: room.currentTurn, names });
             io.to(roomCode).emit("game-starting", {
                 firstTurn: room.currentTurn,
-                players: room.players.map(p => p.name),
+                players: names,
             });
         }
     });
@@ -353,6 +379,7 @@ io.on("connection", (socket) => {
         if (room.currentTurn !== myIndex || room.currentRoll !== null) return;
 
         room.currentRoll = rollDie();
+        room.log.push({ t: "roll", by: myIndex, roll: room.currentRoll });
         io.to(roomCode).emit("die-rolled", { roll: room.currentRoll, byPlayerIndex: myIndex });
     });
 
@@ -364,6 +391,7 @@ io.on("connection", (socket) => {
         const me = getMe();
         const cells = revealCoords(getOpponent().board, [{ col, row }]);
         for (const { col: c, row: r } of cells) me.revealedCells.add(`${c},${r}`);
+        room.log.push({ t: "reveal", by: myIndex, cells, letter: null });
         io.to(roomCode).emit("cells-revealed", { cells, byPlayerIndex: myIndex });
         endTurn();
     });
@@ -387,6 +415,7 @@ io.on("connection", (socket) => {
         const me = getMe();
         const cells = revealCoords(getOpponent().board, coords);
         for (const { col: c, row: r } of cells) me.revealedCells.add(`${c},${r}`);
+        room.log.push({ t: "reveal", by: myIndex, cells, letter: null });
         io.to(roomCode).emit("cells-revealed", { cells, byPlayerIndex: myIndex });
         endTurn();
     });
@@ -413,6 +442,8 @@ io.on("connection", (socket) => {
 
         const cells = revealAllOfLetter(opponent.board, upper);
         for (const { col: c, row: r } of cells) me.revealedCells.add(`${c},${r}`);
+        me.revealedLetters.add(upper);
+        room.log.push({ t: "reveal", by: myIndex, cells, letter: upper });
         io.to(roomCode).emit("cells-revealed", { cells, byPlayerIndex: myIndex, revealedLetter: upper });
         endTurn();
     });
@@ -443,6 +474,7 @@ io.on("connection", (socket) => {
                 });
             }
         } else {
+            room.log.push({ t: "guess", by: myIndex, words });
             io.to(roomCode).emit("guess-result", { correct: false, words, byPlayerIndex: myIndex });
             endTurn();
         }
@@ -462,12 +494,14 @@ io.on("connection", (socket) => {
             room.currentRoll = null;
             room.winner = null;
             room.playAgainVotes = new Set();
+            room.log = [];
             for (const player of room.players) {
                 player.board = makeBoard();
                 player.words = [];
                 player.placements = [];
                 player.ready = false;
                 player.revealedCells = new Set();
+                player.revealedLetters = new Set();
             }
             io.to(roomCode).emit("rematch-start");
             io.to(roomCode).emit("phase-change", { phase: "setup" });
