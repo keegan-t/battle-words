@@ -429,15 +429,8 @@ io.on("connection", (socket) => {
         const me = getMe();
         const opponent = getOpponent();
 
-        const allPositions = [];
-        for (let ri = 0; ri < 10; ri++) {
-            for (let ci = 0; ci < 10; ci++) {
-                if (opponent.board[ri][ci] === upper) allPositions.push(`${COLS[ci]},${ri + 1}`);
-            }
-        }
-
-        if (allPositions.length > 0 && allPositions.every(pos => me.revealedCells.has(pos))) {
-            return socket.emit("reveal-error", { message: `You've already revealed all positions of "${upper}".` });
+        if (me.revealedLetters.has(upper)) {
+            return socket.emit("reveal-error", { message: `You already revealed all "${upper}"s with a previous roll.` });
         }
 
         const cells = revealAllOfLetter(opponent.board, upper);
