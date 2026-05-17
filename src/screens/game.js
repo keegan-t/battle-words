@@ -46,6 +46,9 @@ export function initGame(socket, state, showScreen, showToast) {
 
     const revealedSectionEl = document.getElementById("revealed-letters-section");
     const revealedChipsEl = document.getElementById("revealed-letters-chips");
+    const opponentRevealedSectionEl = document.getElementById("opponent-revealed-section");
+    const opponentRevealedChipsEl = document.getElementById("opponent-revealed-chips");
+    let opponentRevealedLetters = new Set();
 
     function addRevealedLetterChip(letter) {
         if (revealedLetters.has(letter)) return;
@@ -55,6 +58,16 @@ export function initGame(socket, state, showScreen, showToast) {
         chip.className = "revealed-letter-chip";
         chip.textContent = letter;
         revealedChipsEl.appendChild(chip);
+    }
+
+    function addOpponentRevealedLetterChip(letter) {
+        if (opponentRevealedLetters.has(letter)) return;
+        opponentRevealedLetters.add(letter);
+        opponentRevealedSectionEl.classList.remove("hidden");
+        const chip = document.createElement("span");
+        chip.className = "revealed-letter-chip";
+        chip.textContent = letter;
+        opponentRevealedChipsEl.appendChild(chip);
     }
 
     function clearLastMove() {
@@ -426,6 +439,7 @@ export function initGame(socket, state, showScreen, showToast) {
             }
 
             if (revealedLetter) {
+                addOpponentRevealedLetterChip(revealedLetter);
                 if (cells.length === 0) {
                     log(`${getOpponentName()} revealed "${revealedLetter}" - none on your board.`);
                 } else {
@@ -566,7 +580,7 @@ export function initGame(socket, state, showScreen, showToast) {
         log(`${getOpponentName()} reconnected. Game continuing.`, true);
     });
 
-    socket.on("game-resumed", ({ players, myBoard, currentTurn, currentRoll: resumedRoll, revealedCells, opponentRevealedCells, myRevealedLetters, gameLog }) => {
+    socket.on("game-resumed", ({ players, myBoard, currentTurn, currentRoll: resumedRoll, revealedCells, opponentRevealedCells, myRevealedLetters, opponentRevealedLetters: oppRevLetters, gameLog }) => {
         playerNames = players;
 
         // Restore my board letters
@@ -603,6 +617,9 @@ export function initGame(socket, state, showScreen, showToast) {
         // Restore revealed letter chips
         for (const letter of (myRevealedLetters || [])) {
             addRevealedLetterChip(letter);
+        }
+        for (const letter of (oppRevLetters || [])) {
+            addOpponentRevealedLetterChip(letter);
         }
 
         setMyTurn(currentTurn === state.myIndex);
@@ -685,6 +702,9 @@ export function initGame(socket, state, showScreen, showToast) {
         revealedLetters.clear();
         revealedChipsEl.innerHTML = "";
         revealedSectionEl.classList.add("hidden");
+        opponentRevealedLetters.clear();
+        opponentRevealedChipsEl.innerHTML = "";
+        opponentRevealedSectionEl.classList.add("hidden");
 
         currentRoll = null;
         isMyTurn = false;

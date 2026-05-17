@@ -656,6 +656,10 @@ input[type="text"]::placeholder {
     font-size: max(5px, 2cqi);
 }
 
+.my-board-panel .revealed-letters-section {
+    margin-top: 20px;
+}
+
 .grid-section {
     display: flex;
     flex-direction: column;

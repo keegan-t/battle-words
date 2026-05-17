@@ -301,6 +301,7 @@ io.on("connection", (socket) => {
                         revealedCells,
                         opponentRevealedCells,
                         myRevealedLetters: [...player.revealedLetters],
+                        opponentRevealedLetters: [...opponent.revealedLetters],
                         gameLog: room.log,
                     });
                 }
