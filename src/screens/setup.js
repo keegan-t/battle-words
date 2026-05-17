@@ -19,6 +19,36 @@ export function initSetup(socket, state, showScreen, showToast) {
     const btnReady = document.getElementById("btn-ready");
     const wordSlotsEl = document.getElementById("word-slots");
     const statusEl = document.getElementById("setup-status");
+    const setupPlayersEl = document.getElementById("setup-players");
+
+    function renderSetupPlayers() {
+        const players = state.players || [];
+        setupPlayersEl.innerHTML = "";
+        const panel = document.createElement("div");
+        panel.className = "setup-players-panel";
+        const heading = document.createElement("p");
+        heading.className = "setup-players-heading";
+        heading.textContent = "Players";
+        panel.appendChild(heading);
+        for (let i = 0; i < 2; i++) {
+            const row = document.createElement("div");
+            row.className = "setup-player-row";
+            const dot = document.createElement("span");
+            dot.className = "dot";
+            const name = document.createElement("span");
+            if (i < players.length) {
+                name.textContent = players[i] + (i === state.myIndex ? " (you)" : "");
+            } else {
+                name.textContent = "Waiting...";
+                name.style.color = "var(--text-muted)";
+                dot.style.background = "var(--text-muted)";
+            }
+            row.appendChild(dot);
+            row.appendChild(name);
+            panel.appendChild(row);
+        }
+        setupPlayersEl.appendChild(panel);
+    }
 
     const devMode = new URLSearchParams(location.search).get("dev") === "1";
     let devAutoReady = false;
@@ -185,6 +215,7 @@ export function initSetup(socket, state, showScreen, showToast) {
     // === Socket events ===
 
     socket.on("board-updated", ({ board, words }) => {
+        renderSetupPlayers();
         confirmedWords = words;
         boardLetters = {};
         for (let ri = 0; ri < 10; ri++) {
@@ -209,9 +240,12 @@ export function initSetup(socket, state, showScreen, showToast) {
     });
 
     socket.on("phase-change", ({ phase }) => {
-        if (phase === "setup" && devMode) {
-            devAutoReady = true;
-            for (const w of DEV_WORDS) socket.emit("place-word", w);
+        if (phase === "setup") {
+            renderSetupPlayers();
+            if (devMode) {
+                devAutoReady = true;
+                for (const w of DEV_WORDS) socket.emit("place-word", w);
+            }
         }
     });
 
@@ -228,6 +262,7 @@ export function initSetup(socket, state, showScreen, showToast) {
         clearPreview();
         rebuildBoardDisplay();
         renderWordSlots();
+        renderSetupPlayers();
     });
 
     // === Ready button ===

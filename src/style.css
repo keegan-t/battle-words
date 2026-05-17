@@ -488,6 +488,46 @@ input[type="text"]::placeholder {
     gap: 12px;
 }
 
+.setup-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.setup-players-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.setup-players-heading {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+}
+
+.setup-player-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.setup-player-row .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green-hi);
+    flex-shrink: 0;
+}
+
 .setup-subhint {
     color: var(--text-muted);
     font-size: 12px;
@@ -1294,6 +1334,10 @@ input[type="text"]::placeholder {
 
     .setup-layout {
         grid-template-columns: 1fr;
+    }
+
+    .setup-left {
+        display: none;
     }
 
     #screen-setup {

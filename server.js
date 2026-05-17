@@ -271,7 +271,7 @@ io.on("connection", (socket) => {
                     room.reconnectTimer = null;
                 }
                 socket.to(upper).emit("opponent-reconnected");
-                socket.emit("reconnect-success", { phase: room.phase, myIndex: dcIdx, roomCode: upper });
+                socket.emit("reconnect-success", { phase: room.phase, myIndex: dcIdx, roomCode: upper, players: room.players.map(p => p.name) });
                 if (room.phase === "setup") {
                     socket.emit("board-updated", { board: player.board, words: player.words });
                 } else if (room.phase === "game") {

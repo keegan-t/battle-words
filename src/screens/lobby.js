@@ -11,6 +11,7 @@ export function initLobby(socket, state, showScreen, showToast) {
 
     socket.on("player-joined", ({ players, yourIndex }) => {
         state.myIndex = yourIndex;
+        state.players = players;
         codeEl.textContent = state.roomCode;
         history.pushState({}, "", "/play" + location.search);
         localStorage.setItem("bw-reconnect", JSON.stringify({ roomCode: state.roomCode, name: state.myName }));

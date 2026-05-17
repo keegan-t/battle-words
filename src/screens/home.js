@@ -87,10 +87,11 @@ export function initHome(socket, state, showScreen) {
         errorEl.textContent = message;
     });
 
-    socket.on("reconnect-success", ({ phase, myIndex: idx, roomCode: code }) => {
+    socket.on("reconnect-success", ({ phase, myIndex: idx, roomCode: code, players }) => {
         autoReconnecting = false;
         state.myIndex = idx;
         state.roomCode = code;
+        if (players) state.players = players;
         showScreen(phase === "setup" ? "setup" : "game");
     });
 }
