@@ -392,6 +392,10 @@ input[type="text"]::placeholder {
     font-size: clamp(14px, 2.2vw, 30px);
 }
 
+.grid-cell.last-move {
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.75);
+}
+
 .grid-cell.revealed-empty {
     color: var(--red);
     font-size: clamp(14px, 2.2vw, 30px);

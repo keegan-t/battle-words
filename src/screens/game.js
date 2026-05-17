@@ -57,6 +57,12 @@ export function initGame(socket, state, showScreen, showToast) {
         revealedChipsEl.appendChild(chip);
     }
 
+    function clearLastMove() {
+        for (const cell of myGridEl.querySelectorAll(".last-move")) {
+            cell.classList.remove("last-move");
+        }
+    }
+
     // === Grid setup ===
 
     function onOpponentCellClick(col, row) {
@@ -406,6 +412,7 @@ export function initGame(socket, state, showScreen, showToast) {
                 if (misses.length > 0) log(`${misses.length} empty cell${misses.length > 1 ? "s" : ""}.`);
             }
         } else {
+            clearLastMove();
             for (const { col, row, letter } of cells) {
                 const cell = getCell(myGridEl, col, row);
                 if (!cell) continue;
@@ -415,6 +422,7 @@ export function initGame(socket, state, showScreen, showToast) {
                     cell.textContent = "✕";
                     cell.classList.add("opponent-miss");
                 }
+                cell.classList.add("last-move");
             }
 
             if (revealedLetter) {
