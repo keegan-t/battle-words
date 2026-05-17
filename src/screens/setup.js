@@ -174,6 +174,7 @@ export function initSetup(socket, state, showScreen, showToast) {
                 removeBtn.className = "slot-remove";
                 removeBtn.textContent = "×";
                 removeBtn.title = "Remove";
+                removeBtn.disabled = iReady;
                 removeBtn.addEventListener("click", () => socket.emit("remove-word", { word: placed }));
                 slot.appendChild(removeBtn);
             }
@@ -182,7 +183,8 @@ export function initSetup(socket, state, showScreen, showToast) {
         }
 
         const allPlaced = REQUIRED_LENGTHS.every(len => confirmedWords.some(w => w.length === len));
-        btnReady.disabled = !allPlaced || iReady;
+        btnReady.disabled = !allPlaced && !iReady;
+        btnReady.textContent = iReady ? "Unready" : "Ready!";
         statusEl.textContent = iReady
             ? "Waiting for opponent..."
             : allPlaced
@@ -191,7 +193,7 @@ export function initSetup(socket, state, showScreen, showToast) {
 
         if (devAutoReady && allPlaced && !iReady) {
             iReady = true;
-            btnReady.disabled = true;
+            renderWordSlots();
             statusEl.textContent = "Waiting for opponent...";
             socket.emit("submit-board");
         }
@@ -268,9 +270,21 @@ export function initSetup(socket, state, showScreen, showToast) {
     // === Ready button ===
 
     btnReady.addEventListener("click", () => {
-        socket.emit("submit-board");
-        iReady = true;
-        btnReady.disabled = true;
-        statusEl.textContent = "Waiting for opponent...";
+        if (iReady) {
+            socket.emit("unready");
+        } else {
+            socket.emit("submit-board");
+            iReady = true;
+            renderWordSlots();
+        }
+    });
+
+    socket.on("player-unready", ({ playerIndex }) => {
+        if (playerIndex === state.myIndex) {
+            iReady = false;
+            renderWordSlots();
+        } else {
+            showToast("Opponent is no longer ready.");
+        }
     });
 }

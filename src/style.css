@@ -585,6 +585,11 @@ input[type="text"]::placeholder {
     color: var(--red);
 }
 
+.word-slot .slot-remove:disabled {
+    opacity: 0.2;
+    cursor: default;
+}
+
 .setup-status {
     font-size: 12px;
     color: var(--text-muted);

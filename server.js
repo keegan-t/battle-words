@@ -347,6 +347,17 @@ io.on("connection", (socket) => {
         }
     });
 
+    socket.on("unready", () => {
+        const room = getRoom();
+        if (!room || room.phase !== "setup") return;
+        const me = getMe();
+        if (!me.ready) return;
+        const opponent = room.players[otherIdx(myIndex)];
+        if (opponent?.ready) return; // too late
+        me.ready = false;
+        io.to(roomCode).emit("player-unready", { playerIndex: myIndex });
+    });
+
     socket.on("submit-board", () => {
         const room = getRoom();
         if (!room || room.phase !== "setup") return;
