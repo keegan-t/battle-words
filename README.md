@@ -2,7 +2,7 @@
 
 A two-player word strategy game. Hide 5 words on your grid, and be the first to uncover your opponent's hidden words.
 
-**[Play on keegant.dev ->](https://battle-words.keegant.dev)**
+**[Play on keegant.dev →](https://battle-words.keegant.dev)**
 
 ## How to play
 
