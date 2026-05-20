@@ -355,6 +355,7 @@ io.on("connection", (socket) => {
         const room = getRoom();
         if (!room || room.phase !== "setup") return;
         const me = getMe();
+        if (me.ready) return;
 
         const error = validatePlacement(me, word, col, row, direction);
         if (error) return socket.emit("word-error", { message: error });
@@ -367,6 +368,7 @@ io.on("connection", (socket) => {
         const room = getRoom();
         if (!room || room.phase !== "setup") return;
         const me = getMe();
+        if (me.ready) return;
         if (removeWordFromPlayer(me, word)) {
             socket.emit("board-updated", { board: me.board, words: me.words });
         }
