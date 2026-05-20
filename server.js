@@ -463,7 +463,8 @@ io.on("connection", (socket) => {
         if (!room || room.phase !== "game") return;
         if (room.currentTurn !== myIndex || room.currentRoll !== 6) return;
 
-        const upper = letter.toUpperCase();
+        const upper = String(letter).toUpperCase();
+        if (!/^[A-Z]$/.test(upper)) return;
         const me = getMe();
         const opponent = getOpponent();
 
@@ -480,6 +481,8 @@ io.on("connection", (socket) => {
     }));
 
     socket.on("guess-words", guard(({ words }) => {
+        if (!Array.isArray(words) || words.length !== 5) return;
+        if (words.some(w => typeof w !== "string" || !/^[A-Za-z]{3,7}$/.test(w.trim()))) return;
         const room = getRoom();
         if (!room || room.phase !== "game") return;
         if (room.currentTurn !== myIndex) return;
