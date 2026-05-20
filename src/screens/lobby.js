@@ -19,13 +19,19 @@ export function initLobby(socket, state, showScreen, showToast) {
         playersEl.innerHTML = "";
         for (let i = 0; i < 2; i++) {
             const div = document.createElement("div");
+            const dot = document.createElement("span");
+            dot.className = "dot";
+            const nameSpan = document.createElement("span");
             if (i < players.length) {
                 div.className = "lobby-player";
-                div.innerHTML = `<span class="dot"></span><span>${players[i]}${i === yourIndex ? " (you)" : ""}</span>`;
+                nameSpan.textContent = players[i] + (i === yourIndex ? " (you)" : "");
             } else {
                 div.className = "lobby-player waiting";
-                div.innerHTML = `<span class="dot"></span><span style="color:var(--text-muted)">Waiting for player 2...</span>`;
+                nameSpan.textContent = "Waiting for player 2...";
+                nameSpan.style.color = "var(--text-muted)";
             }
+            div.appendChild(dot);
+            div.appendChild(nameSpan);
             playersEl.appendChild(div);
         }
 
