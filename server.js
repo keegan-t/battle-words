@@ -241,9 +241,11 @@ io.on("connection", (socket) => {
     // === Lobby ===
 
     socket.on("create-room", ({ name }) => {
+        const trimmed = (name || "").trim().slice(0, 20);
+        if (!trimmed) return;
         const code = generateCode();
         const room = makeRoom(code);
-        room.players.push(makePlayer(socket.id, name));
+        room.players.push(makePlayer(socket.id, trimmed));
         rooms.set(code, room);
         roomCode = code;
         myIndex = 0;
@@ -253,13 +255,15 @@ io.on("connection", (socket) => {
     });
 
     socket.on("join-room", ({ code, name }) => {
+        const trimmed = (name || "").trim().slice(0, 20);
+        if (!trimmed) return;
         const upper = (code || "").toUpperCase().trim();
         const room = rooms.get(upper);
         if (!room) return socket.emit("join-error", { message: "Room not found. Check your code." });
 
         // Reconnect: in-progress room with a disconnected slot whose name matches
         if (room.phase !== "lobby") {
-            const dcIdx = room.players.findIndex(p => p.id === null && p.name === name);
+            const dcIdx = room.players.findIndex(p => p.id === null && p.name === trimmed);
             if (dcIdx !== -1) {
                 const player = room.players[dcIdx];
                 player.id = socket.id;
@@ -312,7 +316,7 @@ io.on("connection", (socket) => {
 
         if (room.players.length >= 2) return socket.emit("join-error", { message: "This room is already full." });
 
-        room.players.push(makePlayer(socket.id, name));
+        room.players.push(makePlayer(socket.id, trimmed));
         roomCode = upper;
         myIndex = 1;
         socket.join(upper);
