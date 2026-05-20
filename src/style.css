@@ -522,6 +522,9 @@ input[type="text"]::placeholder {
     gap: 8px;
     font-size: 14px;
     color: var(--text);
+    overflow-wrap: break-word;
+    word-break: break-all;
+    min-width: 0;
 }
 
 .setup-player-row .dot {
@@ -697,6 +700,8 @@ input[type="text"]::placeholder {
     border-radius: var(--radius);
     background: var(--bg-card-2);
     color: var(--text-muted);
+    overflow-wrap: break-word;
+    word-break: break-all;
 }
 
 .turn-banner.your-turn {
@@ -790,6 +795,8 @@ input[type="text"]::placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow-wrap: break-word;
+    word-break: break-all;
 }
 
 .action-prompt.active {
@@ -885,6 +892,7 @@ input[type="text"]::placeholder {
     padding: 4px 8px;
     border-radius: 4px;
     background: var(--bg-card-2);
+    overflow-wrap: break-word;
 }
 
 .log-entry.highlight {
