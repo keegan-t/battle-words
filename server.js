@@ -213,6 +213,17 @@ function checkGuess(opponentWords, guessedWords) {
     return actual.every((w, i) => w === guessed[i]);
 }
 
+// Wraps a socket handler to prevent crashes
+function guard(fn) {
+    return (payload) => {
+        try {
+            fn(payload ?? {});
+        } catch {
+            /* ignore malformed requests */
+        }
+    };
+}
+
 // === Sockets ===
 
 io.on("connection", (socket) => {
@@ -240,8 +251,8 @@ io.on("connection", (socket) => {
 
     // === Lobby ===
 
-    socket.on("create-room", ({ name }) => {
-        const trimmed = (name || "").trim().slice(0, 20);
+    socket.on("create-room", guard(({ name }) => {
+        const trimmed = String(name).trim().slice(0, 20);
         if (!trimmed) return;
         const code = generateCode();
         const room = makeRoom(code);
@@ -252,12 +263,12 @@ io.on("connection", (socket) => {
         socket.join(code);
         socket.emit("room-created", { code });
         socket.emit("player-joined", { players: room.players.map(p => p.name), yourIndex: 0 });
-    });
+    }));
 
-    socket.on("join-room", ({ code, name }) => {
-        const trimmed = (name || "").trim().slice(0, 20);
+    socket.on("join-room", guard(({ code, name }) => {
+        const trimmed = String(name).trim().slice(0, 20);
         if (!trimmed) return;
-        const upper = (code || "").toUpperCase().trim();
+        const upper = String(code).toUpperCase().trim();
         const room = rooms.get(upper);
         if (!room) return socket.emit("join-error", { message: "Room not found. Check your code." });
 
@@ -275,7 +286,12 @@ io.on("connection", (socket) => {
                     room.reconnectTimer = null;
                 }
                 socket.to(upper).emit("opponent-reconnected");
-                socket.emit("reconnect-success", { phase: room.phase, myIndex: dcIdx, roomCode: upper, players: room.players.map(p => p.name) });
+                socket.emit("reconnect-success", {
+                    phase: room.phase,
+                    myIndex: dcIdx,
+                    roomCode: upper,
+                    players: room.players.map(p => p.name)
+                });
                 if (room.phase === "setup") {
                     socket.emit("board-updated", { board: player.board, words: player.words });
                 } else if (room.phase === "game") {
@@ -294,7 +310,11 @@ io.on("connection", (socket) => {
                     for (const key of opponent.revealedCells) {
                         const [col, rowStr] = key.split(",");
                         const rowNum = parseInt(rowStr);
-                        opponentRevealedCells.push({ col, row: rowNum, letter: player.board[rowNum - 1][colIndex(col)] });
+                        opponentRevealedCells.push({
+                            col,
+                            row: rowNum,
+                            letter: player.board[rowNum - 1][colIndex(col)]
+                        });
                     }
 
                     socket.emit("game-resumed", {
@@ -327,11 +347,11 @@ io.on("connection", (socket) => {
 
         room.phase = "setup";
         io.to(upper).emit("phase-change", { phase: "setup" });
-    });
+    }));
 
     // === Setup ===
 
-    socket.on("place-word", ({ word, col, row, direction }) => {
+    socket.on("place-word", guard(({ word, col, row, direction }) => {
         const room = getRoom();
         if (!room || room.phase !== "setup") return;
         const me = getMe();
@@ -341,16 +361,16 @@ io.on("connection", (socket) => {
 
         applyPlacement(me, word, col, row, direction);
         socket.emit("board-updated", { board: me.board, words: me.words });
-    });
+    }));
 
-    socket.on("remove-word", ({ word }) => {
+    socket.on("remove-word", guard(({ word }) => {
         const room = getRoom();
         if (!room || room.phase !== "setup") return;
         const me = getMe();
         if (removeWordFromPlayer(me, word)) {
             socket.emit("board-updated", { board: me.board, words: me.words });
         }
-    });
+    }));
 
     socket.on("unready", () => {
         const room = getRoom();
@@ -399,7 +419,7 @@ io.on("connection", (socket) => {
         io.to(roomCode).emit("die-rolled", { roll: room.currentRoll, byPlayerIndex: myIndex });
     });
 
-    socket.on("reveal-cell", ({ col, row }) => {
+    socket.on("reveal-cell", guard(({ col, row }) => {
         const room = getRoom();
         if (!room || room.phase !== "game") return;
         if (room.currentTurn !== myIndex || room.currentRoll === null || room.currentRoll > 3) return;
@@ -410,9 +430,9 @@ io.on("connection", (socket) => {
         room.log.push({ t: "reveal", by: myIndex, cells, letter: null });
         io.to(roomCode).emit("cells-revealed", { cells, byPlayerIndex: myIndex });
         endTurn();
-    });
+    }));
 
-    socket.on("reveal-area", ({ col, row }) => {
+    socket.on("reveal-area", guard(({ col, row }) => {
         const room = getRoom();
         if (!room || room.phase !== "game") return;
         if (room.currentTurn !== myIndex || room.currentRoll === null || room.currentRoll < 4 || room.currentRoll > 5) return;
@@ -434,9 +454,9 @@ io.on("connection", (socket) => {
         room.log.push({ t: "reveal", by: myIndex, cells, letter: null });
         io.to(roomCode).emit("cells-revealed", { cells, byPlayerIndex: myIndex });
         endTurn();
-    });
+    }));
 
-    socket.on("reveal-letter", ({ letter }) => {
+    socket.on("reveal-letter", guard(({ letter }) => {
         const room = getRoom();
         if (!room || room.phase !== "game") return;
         if (room.currentTurn !== myIndex || room.currentRoll !== 6) return;
@@ -455,9 +475,9 @@ io.on("connection", (socket) => {
         room.log.push({ t: "reveal", by: myIndex, cells, letter: upper });
         io.to(roomCode).emit("cells-revealed", { cells, byPlayerIndex: myIndex, revealedLetter: upper });
         endTurn();
-    });
+    }));
 
-    socket.on("guess-words", ({ words }) => {
+    socket.on("guess-words", guard(({ words }) => {
         const room = getRoom();
         if (!room || room.phase !== "game") return;
         if (room.currentTurn !== myIndex) return;
@@ -487,7 +507,7 @@ io.on("connection", (socket) => {
             io.to(roomCode).emit("guess-result", { correct: false, words, byPlayerIndex: myIndex });
             endTurn();
         }
-    });
+    }));
 
     socket.on("play-again", () => {
         const room = getRoom();
@@ -526,9 +546,9 @@ io.on("connection", (socket) => {
     // === Test helpers ===
 
     if (process.env.NODE_ENV === "test") {
-        socket.on("_set-roll", ({ roll }) => {
+        socket.on("_set-roll", guard(({ roll }) => {
             nextRollOverride = roll;
-        });
+        }));
     }
 
     // === Disconnect ===
