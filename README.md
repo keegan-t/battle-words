@@ -1,4 +1,4 @@
-# <img src="public/favicon.svg" width="36" align="center"> Battle Words
+# <img src="public/favicon.svg" height="40" align="top" alt=""> Battle Words
 
 A two-player word strategy game. Hide 5 words on your grid, and be the first to uncover your opponent's hidden words.
 
